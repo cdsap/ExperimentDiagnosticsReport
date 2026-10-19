@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.long
 import io.github.cdsap.experimentdiagnostics.aggregate.VariantAggregator
+import io.github.cdsap.experimentdiagnostics.config.DotEnv
 import io.github.cdsap.experimentdiagnostics.github.GithubArtifactDownloader
 import io.github.cdsap.experimentdiagnostics.github.GithubRunRef
 import io.github.cdsap.experimentdiagnostics.github.LocalArtifactLoader
@@ -17,7 +18,7 @@ class ReportCommand : CliktCommand(name = "report") {
     private val owner by option(help = "GitHub owner")
     private val repo by option(help = "GitHub repository")
     private val runId by option("--run-id", help = "GitHub Actions run id").long()
-    private val token by option(help = "GitHub token (or GITHUB_TOKEN / GH_TOKEN env)")
+    private val token by option(help = "GitHub token (or .env / GITHUB_TOKEN / GH_TOKEN)")
     private val artifactsDir by option("--artifacts-dir", help = "Local artifacts directory (offline)")
     private val output by option("--output", help = "Output package JSON path").required()
     private val force by option("--force", help = "Overwrite output").flag(default = false)
@@ -35,9 +36,12 @@ class ReportCommand : CliktCommand(name = "report") {
                 val resolvedRunId = runId ?: error("--run-id is required unless --artifacts-dir is set")
                 val resolvedToken =
                     token
-                        ?: System.getenv("GITHUB_TOKEN")
-                        ?: System.getenv("GH_TOKEN")
-                        ?: error("GitHub token required via --token or GITHUB_TOKEN/GH_TOKEN")
+                        ?: DotEnv.getenv("GITHUB_TOKEN")
+                        ?: DotEnv.getenv("GH_TOKEN")
+                        ?: error(
+                            "GitHub token required via --token, .env (GITHUB_TOKEN/GH_TOKEN), " +
+                                "or process env GITHUB_TOKEN/GH_TOKEN",
+                        )
                 val workDir = File("build/downloaded-artifacts").apply { mkdirs() }
                 val downloader = GithubArtifactDownloader()
                 try {
