@@ -15,19 +15,7 @@ Telltale uploads:
 
 Known job ids: `execution-caching`, `execution-no-caching`. Join key for discovery is `(variant, job, job-index)`. Aggregates pool all jobs/indices per raw variant before BER remaps onto `--variants` tags.
 
-## Auth
-
-Copy `.env.example` to `.env` and set a token (`.env` is gitignored):
-
-```bash
-cp .env.example .env
-# edit .env — or:
-echo "GITHUB_TOKEN=$(gh auth token)" > .env
-```
-
-Token resolution order: `--token` → process env → `.env` (`GITHUB_TOKEN` or `GH_TOKEN`).
-
-## Usage
+## Usage (planned)
 
 ```bash
 ./experiment-diagnostics-report report \
