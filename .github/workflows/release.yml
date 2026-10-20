@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        java: [17]
+        java: [21]
 
     name: Upload Release Asset
     runs-on: ubuntu-latest
