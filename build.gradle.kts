@@ -15,7 +15,8 @@ repositories {
 }
 
 fatBinary {
-    mainClass = "io.github.cdsap.experimentdiagnostics.MainKt"
+    // Plugin appends "Kt" for Kotlin entrypoints; pass the file stem like BER does.
+    mainClass = "io.github.cdsap.experimentdiagnostics.Main"
     name = "experiment-diagnostics-report"
 }
 
