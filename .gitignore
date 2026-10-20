@@ -4,3 +4,6 @@ build/
 *.iml
 out/
 .kotlin/
+experiment-diagnostics-report
+diagnostics-package.json
+
