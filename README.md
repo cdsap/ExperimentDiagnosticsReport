@@ -2,9 +2,21 @@
 
 CLI that downloads Telltale experiment GitHub Actions CPU/JFR artifacts, aggregates them into BER-style statistical summaries (mean / P50 / P90), and writes a versioned JSON package that [BuildExperimentResults](https://github.com/cdsap/BuildExperimentResults) can import.
 
-## Status
+## Installation
 
-Scaffold — see BuildExperimentResults plan `docs/plans/2026-10-16-1142-feat-telltale-diagnostics-cli-plan.md`.
+After a `v*` tag is pushed, the fat binary is published as a GitHub Release asset (same pattern as BuildExperimentResults / TaskReport):
+
+```
+curl -L https://github.com/cdsap/ExperimentDiagnosticsReport/releases/download/v0.1.0/experiment-diagnostics-report --output experiment-diagnostics-report
+chmod 0757 experiment-diagnostics-report
+```
+
+To cut a release from `main`:
+
+```
+git tag v0.1.0
+git push origin v0.1.0
+```
 
 ## Artifact naming
 
@@ -15,7 +27,7 @@ Telltale uploads:
 
 Known job ids: `execution-caching`, `execution-no-caching`. Join key for discovery is `(variant, job, job-index)`. Aggregates pool all jobs/indices per raw variant before BER remaps onto `--variants` tags.
 
-## Usage (planned)
+## Usage
 
 ```bash
 ./experiment-diagnostics-report report \
@@ -32,3 +44,5 @@ Offline fixtures:
   --artifacts-dir ./fixtures \
   --output diagnostics-package.json
 ```
+
+BuildExperimentResults imports the package with `--diagnostics-package diagnostics-package.json`.
