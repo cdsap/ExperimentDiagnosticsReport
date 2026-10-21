@@ -4,8 +4,8 @@ import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.PackageMeasurement
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
-import io.github.cdsap.experimentdiagnostics.parse.CpuDiagnosticsParser
-import io.github.cdsap.experimentdiagnostics.parse.JfrAggregates
+import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
+import io.github.cdsap.experimentdiagnostics.parse.ProductionArtifactSeriesReader
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import java.io.File
 
@@ -16,11 +16,18 @@ data class ArtifactBundle(
 )
 
 object VariantAggregator {
-    fun aggregate(bundles: List<ArtifactBundle>): Pair<List<VariantDiagnostics>, List<String>> {
+    fun aggregate(bundles: List<ArtifactBundle>): Pair<List<VariantDiagnostics>, List<String>> =
+        aggregate(bundles, ProductionArtifactSeriesReader)
+
+    internal fun aggregate(
+        bundles: List<ArtifactBundle>,
+        reader: ArtifactSeriesReader,
+    ): Pair<List<VariantDiagnostics>, List<String>> {
         val warnings = mutableListOf<String>()
         val byVariant = bundles.groupBy { it.joinKey.variant }
         val variants =
-            byVariant.map { (variant, variantBundles) ->
+            byVariant
+                .map { (variant, variantBundles) ->
                 val jobKeys =
                     variantBundles
                         .map { "${it.joinKey.job}-${it.joinKey.jobIndex}" }
@@ -31,11 +38,7 @@ object VariantAggregator {
                 val meta = mutableMapOf<SeriesKey, SampleSeries>()
 
                 for (bundle in variantBundles) {
-                    val (seriesList, localWarnings) =
-                        when (bundle.kind) {
-                            ArtifactKind.CPU -> CpuDiagnosticsParser.parseDirectory(bundle.directory)
-                            ArtifactKind.JFR -> JfrAggregates.parseDirectory(bundle.directory)
-                        }
+                    val (seriesList, localWarnings) = reader.read(bundle)
                     warnings += localWarnings
                     for (series in seriesList) {
                         val key = SeriesKey(series.category, series.name, series.metric, series.qualifier)
@@ -45,7 +48,8 @@ object VariantAggregator {
                 }
 
                 val measurements =
-                    merged.mapNotNull { (key, samples) ->
+                    merged
+                        .mapNotNull { (key, samples) ->
                         val stats = aggregate(samples) ?: return@mapNotNull null
                         val series = meta.getValue(key)
                         PackageMeasurement(
