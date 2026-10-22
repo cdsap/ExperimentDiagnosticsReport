@@ -6,7 +6,12 @@ import java.io.File
  * Derives sample series from JFR recordings (size bytes; duration when `jfr` works).
  */
 object JfrAggregates {
-    fun parseDirectory(dir: File): Pair<List<SampleSeries>, List<String>> {
+    fun parseDirectory(dir: File): Pair<List<SampleSeries>, List<String>> = parseDirectory(dir, ProcessBuilderJfrDurationReader)
+
+    internal fun parseDirectory(
+        dir: File,
+        durationReader: JfrDurationReader,
+    ): Pair<List<SampleSeries>, List<String>> {
         val warnings = mutableListOf<String>()
         val series = mutableListOf<SampleSeries>()
         val jfrFiles = dir.listFiles()?.filter { it.isFile && it.extension == "jfr" }.orEmpty()
@@ -36,7 +41,7 @@ object JfrAggregates {
 
             val durations = mutableListOf<Double>()
             for (file in files) {
-                val seconds = durationSeconds(file)
+                val seconds = durationReader.readDurationSeconds(file)
                 if (seconds == null) {
                     warnings += "Could not read JFR duration for ${file.name}"
                 } else {
@@ -56,33 +61,5 @@ object JfrAggregates {
         }
 
         return series to warnings
-    }
-
-    private fun durationSeconds(file: File): Double? {
-        return try {
-            val process =
-                ProcessBuilder("jfr", "print", "--events", "jdk.ActiveRecording", file.absolutePath)
-                    .redirectErrorStream(true)
-                    .start()
-            val output = process.inputStream.bufferedReader().readText()
-            val exited = process.waitFor()
-            if (exited != 0) return null
-            val durationMatch =
-                Regex("""duration\s*=\s*([0-9.]+)([a-zA-Z]+)""")
-                    .find(output)
-                    ?: Regex("""recordingDuration\s*=\s*([0-9.]+)([a-zA-Z]+)""")
-                        .find(output)
-                    ?: return null
-            val value = durationMatch.groupValues[1].toDoubleOrNull() ?: return null
-            when (durationMatch.groupValues[2].lowercase()) {
-                "ns" -> value / 1_000_000_000.0
-                "us", "µs" -> value / 1_000_000.0
-                "ms" -> value / 1_000.0
-                "s" -> value
-                else -> value
-            }
-        } catch (_: Exception) {
-            null
-        }
     }
 }
