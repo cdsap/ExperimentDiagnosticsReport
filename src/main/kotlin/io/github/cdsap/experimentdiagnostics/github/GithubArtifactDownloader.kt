@@ -1,6 +1,8 @@
 package io.github.cdsap.experimentdiagnostics.github
 
 import io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
+import io.github.cdsap.experimentdiagnostics.artifact.ArtifactLoadResult
+import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactNameParser
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -31,12 +33,11 @@ data class GithubRunRef(
  * Lists and downloads CPU/JFR artifacts for a GitHub Actions run.
  */
 class GithubArtifactDownloader(
+    private val run: GithubRunRef,
+    private val workDir: File,
     private val client: HttpClient = defaultClient(),
-) {
-    fun download(
-        run: GithubRunRef,
-        workDir: File,
-    ): Pair<List<ArtifactBundle>, List<String>> =
+) : ArtifactSource {
+    override fun load(): ArtifactLoadResult =
         runBlocking {
             val warnings = mutableListOf<String>()
             val artifacts = listArtifacts(run)
@@ -65,18 +66,19 @@ class GithubArtifactDownloader(
                     warnings += "Failed to download ${artifact.name}: ${e.message}"
                 }
             }
-            bundles to warnings
+            ArtifactLoadResult(bundles = bundles, warnings = warnings)
         }
 
     private suspend fun listArtifacts(run: GithubRunRef): List<ArtifactDto> {
         val url =
             "https://api.github.com/repos/${run.owner}/${run.repo}/actions/runs/${run.runId}/artifacts?per_page=100"
         val response: ArtifactsResponse =
-            client.get(url) {
-                bearerAuth(run.token)
-                header(HttpHeaders.Accept, "application/vnd.github+json")
-                header("X-GitHub-Api-Version", "2022-11-28")
-            }.body()
+            client
+                .get(url) {
+                    bearerAuth(run.token)
+                    header(HttpHeaders.Accept, "application/vnd.github+json")
+                    header("X-GitHub-Api-Version", "2022-11-28")
+                }.body()
         return response.artifacts
     }
 
@@ -105,7 +107,7 @@ class GithubArtifactDownloader(
         }
     }
 
-    fun close() = client.close()
+    override fun close() = client.close()
 
     private data class ArtifactsResponse(
         val artifacts: List<ArtifactDto> = emptyList(),

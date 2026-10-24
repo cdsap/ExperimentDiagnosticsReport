@@ -6,14 +6,16 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.long
 import io.github.cdsap.experimentdiagnostics.aggregate.VariantAggregator
-import io.github.cdsap.experimentdiagnostics.github.GithubArtifactDownloader
-import io.github.cdsap.experimentdiagnostics.github.GithubRunRef
-import io.github.cdsap.experimentdiagnostics.github.LocalArtifactLoader
+import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSourceOptions
+import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSourceResolver
+import io.github.cdsap.experimentdiagnostics.artifact.DefaultArtifactSourceResolver
 import io.github.cdsap.experimentdiagnostics.model.DiagnosticsPackage
 import io.github.cdsap.experimentdiagnostics.output.PackageWriter
 import java.io.File
 
-class ReportCommand : CliktCommand(name = "report") {
+class ReportCommand(
+    private val sourceResolver: ArtifactSourceResolver = DefaultArtifactSourceResolver(),
+) : CliktCommand(name = "report") {
     private val owner by option(help = "GitHub owner")
     private val repo by option(help = "GitHub repository")
     private val runId by option("--run-id", help = "GitHub Actions run id").long()
@@ -24,34 +26,14 @@ class ReportCommand : CliktCommand(name = "report") {
 
     override fun run() {
         val warnings = mutableListOf<String>()
+        val sourceOptions =
+            ArtifactSourceOptions(artifactsDir, owner, repo, runId, token)
         val bundles =
-            if (artifactsDir != null) {
-                val (loaded, localWarnings) = LocalArtifactLoader.load(File(artifactsDir!!))
-                warnings += localWarnings
-                loaded
-            } else {
-                val resolvedOwner = owner ?: error("--owner is required unless --artifacts-dir is set")
-                val resolvedRepo = repo ?: error("--repo is required unless --artifacts-dir is set")
-                val resolvedRunId = runId ?: error("--run-id is required unless --artifacts-dir is set")
-                val resolvedToken =
-                    token
-                        ?: System.getenv("GITHUB_TOKEN")
-                        ?: System.getenv("GH_TOKEN")
-                        ?: error("GitHub token required via --token or GITHUB_TOKEN/GH_TOKEN")
-                val workDir = File("build/downloaded-artifacts").apply { mkdirs() }
-                val downloader = GithubArtifactDownloader()
-                try {
-                    val (downloaded, downloadWarnings) =
-                        downloader.download(
-                            GithubRunRef(resolvedOwner, resolvedRepo, resolvedRunId, resolvedToken),
-                            workDir,
-                        )
-                    warnings += downloadWarnings
-                    downloaded
-                } finally {
-                    downloader.close()
-                }
-            }
+            sourceResolver.resolve(sourceOptions).use { source ->
+            val result = source.load()
+            warnings += result.warnings
+            result.bundles
+        }
 
         if (bundles.isEmpty()) {
             error(warnings.joinToString("\n").ifEmpty { "No artifacts to process" })

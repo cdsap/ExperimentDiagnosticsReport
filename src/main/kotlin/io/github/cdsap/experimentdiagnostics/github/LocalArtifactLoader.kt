@@ -1,6 +1,8 @@
 package io.github.cdsap.experimentdiagnostics.github
 
 import io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
+import io.github.cdsap.experimentdiagnostics.artifact.ArtifactLoadResult
+import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactNameParser
 import java.io.File
 
@@ -11,8 +13,10 @@ import java.io.File
  * 1. Flat: each subdirectory named like the GHA artifact (`cpu-lint-4-1-execution-caching-0/`)
  * 2. Nested: `cpu|jfr/<variant>/<job>/<index>/` as produced by the downloader
  */
-object LocalArtifactLoader {
-    fun load(artifactsDir: File): Pair<List<ArtifactBundle>, List<String>> {
+class LocalArtifactLoader(
+    private val artifactsDir: File,
+) : ArtifactSource {
+    override fun load(): ArtifactLoadResult {
         require(artifactsDir.isDirectory) { "Artifacts directory does not exist: ${artifactsDir.path}" }
         val warnings = mutableListOf<String>()
         val bundles = mutableListOf<ArtifactBundle>()
@@ -28,7 +32,7 @@ object LocalArtifactLoader {
                             "${kindName}-${variantDir.name}-${jobDir.name}-${indexDir.name}"
                         val parsed = ArtifactNameParser.parse(synthetic)
                         if (parsed == null) {
-                            warnings += "Skipping unrecognized nested path: ${indexDir.path}"
+                            warnings += "Skipping unrecognized nested path: $indexDir.path"
                             continue
                         }
                         bundles += ArtifactBundle(parsed.kind, parsed.joinKey, indexDir)
@@ -47,6 +51,9 @@ object LocalArtifactLoader {
             warnings += "No CPU/JFR artifact directories found under ${artifactsDir.path}"
         }
 
-        return bundles.distinctBy { Triple(it.kind, it.joinKey, it.directory.absolutePath) } to warnings
+        return ArtifactLoadResult(
+            bundles = bundles.distinctBy { Triple(it.kind, it.joinKey, it.directory.absolutePath) },
+            warnings = warnings,
+        )
     }
 }
