@@ -5,7 +5,6 @@ import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.PackageMeasurement
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
-import io.github.cdsap.experimentdiagnostics.parse.ProductionArtifactSeriesReader
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import java.io.File
 
@@ -15,14 +14,10 @@ data class ArtifactBundle(
     val directory: File,
 )
 
-object VariantAggregator {
-    fun aggregate(bundles: List<ArtifactBundle>): Pair<List<VariantDiagnostics>, List<String>> =
-        aggregate(bundles, ProductionArtifactSeriesReader)
-
-    internal fun aggregate(
-        bundles: List<ArtifactBundle>,
-        reader: ArtifactSeriesReader,
-    ): Pair<List<VariantDiagnostics>, List<String>> {
+class VariantAggregator(
+    private val reader: ArtifactSeriesReader,
+) {
+    fun aggregate(bundles: List<ArtifactBundle>): Pair<List<VariantDiagnostics>, List<String>> {
         val warnings = mutableListOf<String>()
         val byVariant = bundles.groupBy { it.joinKey.variant }
         val variants =

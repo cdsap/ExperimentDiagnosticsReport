@@ -26,7 +26,7 @@ class VariantAggregatorTest {
                 ) to listOf("reader warning")
             }
 
-        val (variants, warnings) = VariantAggregator.aggregate(listOf(bundle), reader)
+        val (variants, warnings) = VariantAggregator(reader).aggregate(listOf(bundle))
 
         assertEquals(listOf("reader warning"), warnings)
         val variant = variants.single()
