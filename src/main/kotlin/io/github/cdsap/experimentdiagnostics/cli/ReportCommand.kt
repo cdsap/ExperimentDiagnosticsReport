@@ -11,6 +11,7 @@ import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSourceResolver
 import io.github.cdsap.experimentdiagnostics.artifact.DefaultArtifactSourceResolver
 import io.github.cdsap.experimentdiagnostics.model.DiagnosticsPackage
 import io.github.cdsap.experimentdiagnostics.output.PackageWriter
+import io.github.cdsap.experimentdiagnostics.parse.ProductionArtifactSeriesReader
 import java.io.File
 
 class ReportCommand(
@@ -39,7 +40,7 @@ class ReportCommand(
             error(warnings.joinToString("\n").ifEmpty { "No artifacts to process" })
         }
 
-        val (variants, aggWarnings) = VariantAggregator.aggregate(bundles)
+        val (variants, aggWarnings) = VariantAggregator(ProductionArtifactSeriesReader).aggregate(bundles)
         warnings += aggWarnings
 
         val diagnosticsPackage =
