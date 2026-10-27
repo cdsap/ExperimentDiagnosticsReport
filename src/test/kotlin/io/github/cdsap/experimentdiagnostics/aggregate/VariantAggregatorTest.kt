@@ -2,6 +2,7 @@ package io.github.cdsap.experimentdiagnostics.aggregate
 
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
+import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -9,6 +10,14 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 class VariantAggregatorTest {
+    @Test
+    fun defaultReaderHandlesEmptyBundles() {
+        val (variants, warnings) = VariantAggregator().aggregate(emptyList())
+
+        assertEquals(emptyList<VariantDiagnostics>(), variants)
+        assertEquals(emptyList<String>(), warnings)
+    }
+
     @Test
     fun aggregatesInMemorySeriesWithoutReadingArtifactFiles() {
         val bundle = ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-b", "job", 1), File("does-not-exist"))
