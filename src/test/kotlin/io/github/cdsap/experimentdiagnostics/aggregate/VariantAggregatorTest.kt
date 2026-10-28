@@ -3,7 +3,7 @@ package io.github.cdsap.experimentdiagnostics.aggregate
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
-import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
+import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesLoader
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -22,7 +22,7 @@ class VariantAggregatorTest {
     fun aggregatesInMemorySeriesWithoutReadingArtifactFiles() {
         val bundle = ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-b", "job", 1), File("does-not-exist"))
         val reader =
-            ArtifactSeriesReader { artifact ->
+            ArtifactSeriesLoader { artifact ->
                 assertEquals(bundle, artifact)
                 listOf(
                     SampleSeries(
@@ -45,5 +45,34 @@ class VariantAggregatorTest {
         assertEquals(20.0, measurement.mean)
         assertEquals(20.0, measurement.p50)
         assertEquals(30.0, measurement.p90)
+    }
+
+    @Test
+    fun skipsEmptySeriesAndKeepsMeasurementOrdering() {
+        val bundles =
+            listOf(
+                ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-a", "job", 1), File("missing-a")),
+                ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-a", "job", 2), File("missing-b")),
+            )
+        val loader =
+            ArtifactSeriesLoader { bundle ->
+                when (bundle.directory.path) {
+                    "missing-a" ->
+                        listOf(
+                            SampleSeries("z", "z-name", "q", "Z_METRIC", emptyList()),
+                            SampleSeries("cpu", "cpu-name", "q", "A_METRIC", listOf(4.0)),
+                        ) to emptyList()
+                    else ->
+                        listOf(
+                            SampleSeries("jfr", "jfr-name", "q", "A_METRIC", listOf(2.0)),
+                        ) to emptyList()
+                }
+            }
+
+        val (variants, warnings) = VariantAggregator(loader).aggregate(bundles)
+
+        assertEquals(emptyList<String>(), warnings)
+        assertEquals(listOf("A_METRIC", "A_METRIC"), variants.single().measurements.map { it.metric })
+        assertEquals(listOf(4.0, 2.0), variants.single().measurements.map { it.mean })
     }
 }
