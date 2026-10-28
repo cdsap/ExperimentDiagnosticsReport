@@ -4,8 +4,8 @@ import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.PackageMeasurement
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
-import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
-import io.github.cdsap.experimentdiagnostics.parse.ProductionArtifactSeriesReader
+import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesLoader
+import io.github.cdsap.experimentdiagnostics.parse.ProductionArtifactSeriesLoader
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import java.io.File
 
@@ -16,7 +16,7 @@ data class ArtifactBundle(
 )
 
 class VariantAggregator(
-    private val reader: ArtifactSeriesReader = ProductionArtifactSeriesReader,
+    private val loader: ArtifactSeriesLoader = ProductionArtifactSeriesLoader,
 ) {
     fun aggregate(bundles: List<ArtifactBundle>): Pair<List<VariantDiagnostics>, List<String>> {
         val warnings = mutableListOf<String>()
@@ -34,7 +34,7 @@ class VariantAggregator(
                 val meta = mutableMapOf<SeriesKey, SampleSeries>()
 
                 for (bundle in variantBundles) {
-                    val (seriesList, localWarnings) = reader.read(bundle)
+                    val (seriesList, localWarnings) = loader.load(bundle)
                     warnings += localWarnings
                     for (series in seriesList) {
                         val key = SeriesKey(series.category, series.name, series.metric, series.qualifier)
