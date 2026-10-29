@@ -3,7 +3,7 @@ package io.github.cdsap.experimentdiagnostics.aggregate
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
-import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesLoader
+import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -22,7 +22,7 @@ class VariantAggregatorTest {
     fun aggregatesInMemorySeriesWithoutReadingArtifactFiles() {
         val bundle = ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-b", "job", 1), File("does-not-exist"))
         val reader =
-            ArtifactSeriesLoader { artifact ->
+            ArtifactSeriesReader { artifact ->
                 assertEquals(bundle, artifact)
                 listOf(
                     SampleSeries(
@@ -55,7 +55,7 @@ class VariantAggregatorTest {
                 ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-a", "job", 2), File("missing-b")),
             )
         val loader =
-            ArtifactSeriesLoader { bundle ->
+            ArtifactSeriesReader { bundle ->
                 when (bundle.directory.path) {
                     "missing-a" ->
                         listOf(
