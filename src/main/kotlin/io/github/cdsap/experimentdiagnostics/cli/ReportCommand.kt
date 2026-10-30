@@ -6,9 +6,9 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.long
 import io.github.cdsap.experimentdiagnostics.aggregate.VariantAggregator
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSourceOptions
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSourceResolver
-import io.github.cdsap.experimentdiagnostics.artifact.DefaultArtifactSourceResolver
+import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
+import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceResolver
+import io.github.cdsap.experimentdiagnostics.github.DefaultArtifactSourceResolver
 import io.github.cdsap.experimentdiagnostics.model.DiagnosticsPackage
 import io.github.cdsap.experimentdiagnostics.output.PackageWriter
 import java.io.File
@@ -30,10 +30,10 @@ class ReportCommand(
             ArtifactSourceOptions(artifactsDir, owner, repo, runId, token)
         val bundles =
             sourceResolver.resolve(sourceOptions).use { source ->
-            val result = source.load()
-            warnings += result.warnings
-            result.bundles
-        }
+                val result = source.load()
+                warnings += result.warnings
+                result.bundles
+            }
 
         if (bundles.isEmpty()) {
             error(warnings.joinToString("\n").ifEmpty { "No artifacts to process" })

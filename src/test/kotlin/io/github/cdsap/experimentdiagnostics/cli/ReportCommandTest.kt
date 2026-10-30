@@ -2,10 +2,10 @@ package io.github.cdsap.experimentdiagnostics.cli
 
 import com.github.ajalt.clikt.core.main
 import io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactLoadResult
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSource
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSourceOptions
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSourceResolver
+import io.github.cdsap.experimentdiagnostics.github.ArtifactLoadResult
+import io.github.cdsap.experimentdiagnostics.github.ArtifactSource
+import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
+import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceResolver
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import org.junit.jupiter.api.Assertions.assertEquals
