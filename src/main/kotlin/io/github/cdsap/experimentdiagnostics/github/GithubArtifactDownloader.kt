@@ -1,8 +1,6 @@
 package io.github.cdsap.experimentdiagnostics.github
 
 import io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactLoadResult
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactNameParser
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -36,8 +34,8 @@ class GithubArtifactDownloader(
     private val run: GithubRunRef,
     private val workDir: File,
     private val client: HttpClient = defaultClient(),
-) : ArtifactSource {
-    override fun load(): ArtifactLoadResult =
+) {
+    fun load(): ArtifactLoadResult =
         runBlocking {
             val warnings = mutableListOf<String>()
             val artifacts = listArtifacts(run)
@@ -107,7 +105,7 @@ class GithubArtifactDownloader(
         }
     }
 
-    override fun close() = client.close()
+    fun close() = client.close()
 
     private data class ArtifactsResponse(
         val artifacts: List<ArtifactDto> = emptyList(),

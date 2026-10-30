@@ -1,8 +1,6 @@
 package io.github.cdsap.experimentdiagnostics.github
 
 import io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactLoadResult
-import io.github.cdsap.experimentdiagnostics.artifact.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactNameParser
 import java.io.File
 
@@ -15,8 +13,8 @@ import java.io.File
  */
 class LocalArtifactLoader(
     private val artifactsDir: File,
-) : ArtifactSource {
-    override fun load(): ArtifactLoadResult {
+) {
+    fun load(): ArtifactLoadResult {
         require(artifactsDir.isDirectory) { "Artifacts directory does not exist: ${artifactsDir.path}" }
         val warnings = mutableListOf<String>()
         val bundles = mutableListOf<ArtifactBundle>()
