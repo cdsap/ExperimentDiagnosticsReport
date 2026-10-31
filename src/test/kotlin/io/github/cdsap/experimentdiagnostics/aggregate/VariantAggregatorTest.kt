@@ -3,7 +3,7 @@ package io.github.cdsap.experimentdiagnostics.aggregate
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
-import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
+import io.github.cdsap.experimentdiagnostics.parse.ArtifactDirectoryParser
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -21,9 +21,9 @@ class VariantAggregatorTest {
     @Test
     fun aggregatesInMemorySeriesWithoutReadingArtifactFiles() {
         val bundle = ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-b", "job", 1), File("does-not-exist"))
-        val reader =
-            ArtifactSeriesReader { artifact ->
-                assertEquals(bundle, artifact)
+        val parser =
+            ArtifactDirectoryParser { directory ->
+                assertEquals(bundle.directory, directory)
                 listOf(
                     SampleSeries(
                         category = "cpu",
@@ -35,7 +35,8 @@ class VariantAggregatorTest {
                 ) to listOf("reader warning")
             }
 
-        val (variants, warnings) = VariantAggregator(reader).aggregate(listOf(bundle))
+        val (variants, warnings) =
+            VariantAggregator(mapOf(ArtifactKind.CPU to parser)).aggregate(listOf(bundle))
 
         assertEquals(listOf("reader warning"), warnings)
         val variant = variants.single()
@@ -54,9 +55,9 @@ class VariantAggregatorTest {
                 ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-a", "job", 1), File("missing-a")),
                 ArtifactBundle(ArtifactKind.CPU, JoinKey("variant-a", "job", 2), File("missing-b")),
             )
-        val loader =
-            ArtifactSeriesReader { bundle ->
-                when (bundle.directory.path) {
+        val parser =
+            ArtifactDirectoryParser { directory ->
+                when (directory.path) {
                     "missing-a" ->
                         listOf(
                             SampleSeries("z", "z-name", "q", "Z_METRIC", emptyList()),
@@ -69,7 +70,8 @@ class VariantAggregatorTest {
                 }
             }
 
-        val (variants, warnings) = VariantAggregator(loader).aggregate(bundles)
+        val (variants, warnings) =
+            VariantAggregator(mapOf(ArtifactKind.CPU to parser)).aggregate(bundles)
 
         assertEquals(emptyList<String>(), warnings)
         assertEquals(listOf("A_METRIC", "A_METRIC"), variants.single().measurements.map { it.metric })

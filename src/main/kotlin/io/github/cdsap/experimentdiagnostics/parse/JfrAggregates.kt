@@ -5,8 +5,8 @@ import java.io.File
 /**
  * Derives sample series from JFR recordings (size bytes; duration when `jfr` works).
  */
-object JfrAggregates {
-    fun parseDirectory(dir: File): Pair<List<SampleSeries>, List<String>> = parseDirectory(dir, ProcessBuilderJfrDurationReader)
+object JfrAggregates : ArtifactDirectoryParser {
+    override fun parseDirectory(dir: File): Pair<List<SampleSeries>, List<String>> = parseDirectory(dir, ProcessBuilderJfrDurationReader)
 
     internal fun parseDirectory(
         dir: File,
