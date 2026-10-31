@@ -4,8 +4,9 @@ import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.PackageMeasurement
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
-import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
-import io.github.cdsap.experimentdiagnostics.parse.ProductionArtifactSeriesReader
+import io.github.cdsap.experimentdiagnostics.parse.ArtifactDirectoryParser
+import io.github.cdsap.experimentdiagnostics.parse.CpuDiagnosticsParser
+import io.github.cdsap.experimentdiagnostics.parse.JfrAggregates
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import java.io.File
 
@@ -16,7 +17,7 @@ data class ArtifactBundle(
 )
 
 class VariantAggregator(
-    private val reader: ArtifactSeriesReader = ProductionArtifactSeriesReader,
+    private val parsers: Map<ArtifactKind, ArtifactDirectoryParser> = defaultParsers,
 ) {
     fun aggregate(bundles: List<ArtifactBundle>): Pair<List<VariantDiagnostics>, List<String>> {
         val warnings = mutableListOf<String>()
@@ -34,7 +35,7 @@ class VariantAggregator(
                 val meta = mutableMapOf<SeriesKey, SampleSeries>()
 
                 for (bundle in variantBundles) {
-                    val (seriesList, localWarnings) = reader.read(bundle)
+                    val (seriesList, localWarnings) = parsers.getValue(bundle.kind).parseDirectory(bundle.directory)
                     warnings += localWarnings
                     for (series in seriesList) {
                         val key = SeriesKey(series.category, series.name, series.metric, series.qualifier)
@@ -71,4 +72,12 @@ class VariantAggregator(
         val metric: String,
         val qualifier: String,
     )
+
+    private companion object {
+        val defaultParsers =
+            mapOf(
+                ArtifactKind.CPU to CpuDiagnosticsParser,
+                ArtifactKind.JFR to JfrAggregates,
+            )
+    }
 }

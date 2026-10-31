@@ -18,8 +18,8 @@ data class SampleSeries(
  * - system: vmstat us / sy / id / wa
  * - processes: pidstat %CPU across rows
  */
-object CpuDiagnosticsParser {
-    fun parseDirectory(dir: File): Pair<List<SampleSeries>, List<String>> {
+object CpuDiagnosticsParser : ArtifactDirectoryParser {
+    override fun parseDirectory(dir: File): Pair<List<SampleSeries>, List<String>> {
         val warnings = mutableListOf<String>()
         val series = mutableListOf<SampleSeries>()
 
