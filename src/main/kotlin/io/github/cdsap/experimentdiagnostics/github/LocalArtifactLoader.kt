@@ -1,6 +1,5 @@
 package io.github.cdsap.experimentdiagnostics.github
 
-import io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactNameParser
 import java.io.File
 
