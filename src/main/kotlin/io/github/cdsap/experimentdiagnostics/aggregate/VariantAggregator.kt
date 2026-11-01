@@ -1,69 +1,58 @@
 package io.github.cdsap.experimentdiagnostics.aggregate
 
-import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.PackageMeasurement
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
-import io.github.cdsap.experimentdiagnostics.parse.ArtifactDirectoryParser
-import io.github.cdsap.experimentdiagnostics.parse.CpuDiagnosticsParser
-import io.github.cdsap.experimentdiagnostics.parse.JfrAggregates
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
-import java.io.File
 
-data class ArtifactBundle(
-    val kind: ArtifactKind,
+data class ParsedArtifact(
     val joinKey: JoinKey,
-    val directory: File,
+    val series: List<SampleSeries>,
 )
 
-class VariantAggregator(
-    private val parsers: Map<ArtifactKind, ArtifactDirectoryParser> = defaultParsers,
-) {
-    fun aggregate(bundles: List<ArtifactBundle>): Pair<List<VariantDiagnostics>, List<String>> {
-        val warnings = mutableListOf<String>()
-        val byVariant = bundles.groupBy { it.joinKey.variant }
+class VariantAggregator {
+    fun aggregate(artifacts: List<ParsedArtifact>): List<VariantDiagnostics> {
+        val byVariant = artifacts.groupBy { it.joinKey.variant }
         val variants =
             byVariant
                 .map { (variant, variantBundles) ->
-                val jobKeys =
-                    variantBundles
-                        .map { "${it.joinKey.job}-${it.joinKey.jobIndex}" }
-                        .distinct()
-                        .sorted()
+                    val jobKeys =
+                        variantBundles
+                            .map { "${it.joinKey.job}-${it.joinKey.jobIndex}" }
+                            .distinct()
+                            .sorted()
 
-                val merged = mutableMapOf<SeriesKey, MutableList<Double>>()
-                val meta = mutableMapOf<SeriesKey, SampleSeries>()
+                    val merged = mutableMapOf<SeriesKey, MutableList<Double>>()
+                    val meta = mutableMapOf<SeriesKey, SampleSeries>()
 
-                for (bundle in variantBundles) {
-                    val (seriesList, localWarnings) = parsers.getValue(bundle.kind).parseDirectory(bundle.directory)
-                    warnings += localWarnings
-                    for (series in seriesList) {
-                        val key = SeriesKey(series.category, series.name, series.metric, series.qualifier)
-                        meta[key] = series
-                        merged.getOrPut(key) { mutableListOf() }.addAll(series.samples)
+                    for (artifact in variantBundles) {
+                        for (series in artifact.series) {
+                            val key = SeriesKey(series.category, series.name, series.metric, series.qualifier)
+                            meta[key] = series
+                            merged.getOrPut(key) { mutableListOf() }.addAll(series.samples)
+                        }
                     }
-                }
 
-                val measurements =
-                    merged
-                        .mapNotNull { (key, samples) ->
-                        val stats = aggregate(samples) ?: return@mapNotNull null
-                        val series = meta.getValue(key)
-                        PackageMeasurement(
-                            category = series.category,
-                            name = series.name,
-                            mean = stats.mean,
-                            p50 = stats.p50,
-                            p90 = stats.p90,
-                            qualifier = series.qualifier,
-                            metric = series.metric,
-                        )
-                    }.sortedWith(compareBy({ it.metric }, { it.category }, { it.name }, { it.qualifier }))
+                    val measurements =
+                        merged
+                            .mapNotNull { (key, samples) ->
+                                val stats = aggregate(samples) ?: return@mapNotNull null
+                                val series = meta.getValue(key)
+                                PackageMeasurement(
+                                    category = series.category,
+                                    name = series.name,
+                                    mean = stats.mean,
+                                    p50 = stats.p50,
+                                    p90 = stats.p90,
+                                    qualifier = series.qualifier,
+                                    metric = series.metric,
+                                )
+                            }.sortedWith(compareBy({ it.metric }, { it.category }, { it.name }, { it.qualifier }))
 
-                VariantDiagnostics(variant = variant, jobKeys = jobKeys, measurements = measurements)
-            }.sortedBy { it.variant }
+                    VariantDiagnostics(variant = variant, jobKeys = jobKeys, measurements = measurements)
+                }.sortedBy { it.variant }
 
-        return variants to warnings
+        return variants
     }
 
     private data class SeriesKey(
@@ -72,12 +61,4 @@ class VariantAggregator(
         val metric: String,
         val qualifier: String,
     )
-
-    private companion object {
-        val defaultParsers =
-            mapOf(
-                ArtifactKind.CPU to CpuDiagnosticsParser,
-                ArtifactKind.JFR to JfrAggregates,
-            )
-    }
 }

@@ -1,6 +1,5 @@
 package io.github.cdsap.experimentdiagnostics.github
 
-import io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactNameParser
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body

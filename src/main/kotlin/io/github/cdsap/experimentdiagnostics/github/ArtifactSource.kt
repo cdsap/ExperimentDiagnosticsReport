@@ -1,6 +1,5 @@
 package io.github.cdsap.experimentdiagnostics.github
 
-import io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
 import java.io.File
 
 data class ArtifactLoadResult(
