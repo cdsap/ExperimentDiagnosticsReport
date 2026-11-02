@@ -5,12 +5,11 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.long
-import io.github.cdsap.experimentdiagnostics.aggregate.VariantAggregator
-import io.github.cdsap.experimentdiagnostics.github.ArtifactSeriesLoader
+import io.github.cdsap.experimentdiagnostics.application.ReportGenerator
+import io.github.cdsap.experimentdiagnostics.application.ReportMetadata
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceResolver
 import io.github.cdsap.experimentdiagnostics.github.DefaultArtifactSourceResolver
-import io.github.cdsap.experimentdiagnostics.model.DiagnosticsPackage
 import io.github.cdsap.experimentdiagnostics.output.PackageWriter
 import java.io.File
 
@@ -40,23 +39,22 @@ class ReportCommand(
             error(warnings.joinToString("\n").ifEmpty { "No artifacts to process" })
         }
 
-        val (artifacts, aggWarnings) = ArtifactSeriesLoader().load(bundles)
-        val variants = VariantAggregator().aggregate(artifacts)
-        warnings += aggWarnings
-
         val diagnosticsPackage =
-            DiagnosticsPackage(
-                experimentRunId = runId?.toString(),
-                sourceRepo = if (owner != null && repo != null) "$owner/$repo" else null,
-                variants = variants,
-                warnings = warnings.distinct(),
+            ReportGenerator().generate(
+                bundles = bundles,
+                metadata =
+                    ReportMetadata(
+                        experimentRunId = runId?.toString(),
+                        sourceRepo = if (owner != null && repo != null) "$owner/$repo" else null,
+                    ),
+                warnings = warnings,
             )
 
         PackageWriter.write(diagnosticsPackage, File(output), force = force)
-        echo("Wrote ${variants.size} variant(s) to $output")
-        if (warnings.isNotEmpty()) {
+        echo("Wrote ${diagnosticsPackage.variants.size} variant(s) to $output")
+        if (diagnosticsPackage.warnings.isNotEmpty()) {
             echo("Warnings:")
-            warnings.distinct().forEach { echo("  - $it") }
+            diagnosticsPackage.warnings.forEach { echo("  - $it") }
         }
     }
 }
