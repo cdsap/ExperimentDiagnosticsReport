@@ -7,14 +7,14 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.long
 import io.github.cdsap.experimentdiagnostics.application.ReportGenerator
 import io.github.cdsap.experimentdiagnostics.application.ReportMetadata
+import io.github.cdsap.experimentdiagnostics.github.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
-import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceResolver
-import io.github.cdsap.experimentdiagnostics.github.DefaultArtifactSourceResolver
+import io.github.cdsap.experimentdiagnostics.github.DefaultArtifactSource
 import io.github.cdsap.experimentdiagnostics.output.PackageWriter
 import java.io.File
 
 class ReportCommand(
-    private val sourceResolver: ArtifactSourceResolver = DefaultArtifactSourceResolver(),
+    private val artifactSource: ArtifactSource = DefaultArtifactSource(),
 ) : CliktCommand(name = "report") {
     private val owner by option(help = "GitHub owner")
     private val repo by option(help = "GitHub repository")
@@ -28,12 +28,9 @@ class ReportCommand(
         val warnings = mutableListOf<String>()
         val sourceOptions =
             ArtifactSourceOptions(artifactsDir, owner, repo, runId, token)
-        val bundles =
-            sourceResolver.resolve(sourceOptions).use { source ->
-                val result = source.load()
-                warnings += result.warnings
-                result.bundles
-            }
+        val result = artifactSource.load(sourceOptions)
+        warnings += result.warnings
+        val bundles = result.bundles
 
         if (bundles.isEmpty()) {
             error(warnings.joinToString("\n").ifEmpty { "No artifacts to process" })
