@@ -7,23 +7,28 @@ data class ArtifactLoadResult(
     val warnings: List<String>,
 )
 
-interface ArtifactSource : AutoCloseable {
+/** Acquires report artifacts without exposing source-specific lifecycle details. */
+fun interface ArtifactSource {
+    fun load(options: ArtifactSourceOptions): ArtifactLoadResult
+}
+
+private interface ResolvedArtifactSource : AutoCloseable {
     fun load(): ArtifactLoadResult
 
     override fun close() = Unit
 }
 
-/** Adapts the local loader to the report input-source boundary. */
-class LocalArtifactSource(
+/** Adapts the local loader to the resolved artifact-source boundary. */
+private class LocalArtifactSource(
     private val loader: LocalArtifactLoader,
-) : ArtifactSource {
+) : ResolvedArtifactSource {
     override fun load(): ArtifactLoadResult = loader.load()
 }
 
-/** Adapts the GitHub downloader to the report input-source boundary. */
-class GithubArtifactSource(
+/** Adapts the GitHub downloader to the resolved artifact-source boundary. */
+private class GithubArtifactSource(
     private val downloader: GithubArtifactDownloader,
-) : ArtifactSource {
+) : ResolvedArtifactSource {
     override fun load(): ArtifactLoadResult = downloader.load()
 
     override fun close() = downloader.close()
@@ -37,14 +42,13 @@ data class ArtifactSourceOptions(
     val token: String?,
 )
 
-fun interface ArtifactSourceResolver {
-    fun resolve(options: ArtifactSourceOptions): ArtifactSource
-}
-
-class DefaultArtifactSourceResolver(
+class DefaultArtifactSource(
     private val environment: Map<String, String> = System.getenv(),
-) : ArtifactSourceResolver {
-    override fun resolve(options: ArtifactSourceOptions): ArtifactSource {
+) : ArtifactSource {
+    override fun load(options: ArtifactSourceOptions): ArtifactLoadResult =
+        resolve(options).use { source -> source.load() }
+
+    private fun resolve(options: ArtifactSourceOptions): ResolvedArtifactSource {
         options.artifactsDir?.let { return LocalArtifactSource(LocalArtifactLoader(File(it))) }
 
         val owner = options.owner ?: error("--owner is required unless --artifacts-dir is set")

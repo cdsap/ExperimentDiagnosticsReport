@@ -5,7 +5,6 @@ import io.github.cdsap.experimentdiagnostics.github.ArtifactBundle
 import io.github.cdsap.experimentdiagnostics.github.ArtifactLoadResult
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
-import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceResolver
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,7 +18,7 @@ class ReportCommandTest {
     lateinit var tempDir: File
 
     @Test
-    fun usesInjectedSourceAndClosesItAfterLoading() {
+    fun usesInjectedSourceAndPropagatesItsResult() {
         val source =
             FakeArtifactSource(
                 ArtifactLoadResult(
@@ -35,30 +34,21 @@ class ReportCommandTest {
                 ),
             )
         val output = File(tempDir, "report.json")
-        var receivedOptions: ArtifactSourceOptions? = null
-        val resolver =
-            ArtifactSourceResolver { options ->
-                receivedOptions = options
-                source
-            }
-
-        ReportCommand(resolver).main(arrayOf("--output", output.path))
+        ReportCommand(source).main(arrayOf("--output", output.path))
 
         assertTrue(output.exists())
         assertTrue(output.readText().contains("source warning"))
-        assertEquals(ArtifactSourceOptions(null, null, null, null, null), receivedOptions)
-        assertTrue(source.closed)
+        assertEquals(ArtifactSourceOptions(null, null, null, null, null), source.receivedOptions)
     }
 
     private class FakeArtifactSource(
         private val result: ArtifactLoadResult,
     ) : ArtifactSource {
-        var closed = false
+        var receivedOptions: ArtifactSourceOptions? = null
 
-        override fun load() = result
-
-        override fun close() {
-            closed = true
+        override fun load(options: ArtifactSourceOptions): ArtifactLoadResult {
+            receivedOptions = options
+            return result
         }
     }
 }
