@@ -2,8 +2,6 @@ package io.github.cdsap.experimentdiagnostics.cli
 
 import com.github.ajalt.clikt.core.main
 import io.github.cdsap.experimentdiagnostics.github.ArtifactBundle
-import io.github.cdsap.experimentdiagnostics.github.ArtifactLoadResult
-import io.github.cdsap.experimentdiagnostics.github.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
@@ -18,10 +16,10 @@ class ReportCommandTest {
     lateinit var tempDir: File
 
     @Test
-    fun usesInjectedSourceAndPropagatesItsResult() {
+    fun usesInjectedInputLoaderAndPropagatesItsResult() {
         val source =
-            FakeArtifactSource(
-                ArtifactLoadResult(
+            FakeReportInputLoader(
+                ReportInput(
                     bundles =
                         listOf(
                             ArtifactBundle(
@@ -41,12 +39,12 @@ class ReportCommandTest {
         assertEquals(ArtifactSourceOptions(null, null, null, null, null), source.receivedOptions)
     }
 
-    private class FakeArtifactSource(
-        private val result: ArtifactLoadResult,
-    ) : ArtifactSource {
+    private class FakeReportInputLoader(
+        private val result: ReportInput,
+    ) : ReportInputLoader {
         var receivedOptions: ArtifactSourceOptions? = null
 
-        override fun load(options: ArtifactSourceOptions): ArtifactLoadResult {
+        override fun load(options: ArtifactSourceOptions): ReportInput {
             receivedOptions = options
             return result
         }
