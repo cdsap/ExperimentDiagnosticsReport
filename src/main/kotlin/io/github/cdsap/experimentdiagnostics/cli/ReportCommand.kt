@@ -9,13 +9,14 @@ import io.github.cdsap.experimentdiagnostics.application.ReportGenerator
 import io.github.cdsap.experimentdiagnostics.application.ReportMetadata
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
-import io.github.cdsap.experimentdiagnostics.github.DefaultArtifactSource
 import io.github.cdsap.experimentdiagnostics.output.PackageWriter
 import java.io.File
 
 class ReportCommand(
-    private val artifactSource: ArtifactSource = DefaultArtifactSource(),
+    private val reportInputLoader: ReportInputLoader = DefaultReportInputLoader(),
 ) : CliktCommand(name = "report") {
+    constructor(artifactSource: ArtifactSource) : this(DefaultReportInputLoader(artifactSource))
+
     private val owner by option(help = "GitHub owner")
     private val repo by option(help = "GitHub repository")
     private val runId by option("--run-id", help = "GitHub Actions run id").long()
@@ -28,7 +29,7 @@ class ReportCommand(
         val warnings = mutableListOf<String>()
         val sourceOptions =
             ArtifactSourceOptions(artifactsDir, owner, repo, runId, token)
-        val result = artifactSource.load(sourceOptions)
+        val result = reportInputLoader.load(sourceOptions)
         warnings += result.warnings
         val bundles = result.bundles
 
