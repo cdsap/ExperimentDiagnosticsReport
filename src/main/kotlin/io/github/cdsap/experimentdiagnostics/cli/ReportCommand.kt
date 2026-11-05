@@ -8,14 +8,16 @@ import com.github.ajalt.clikt.parameters.types.long
 import io.github.cdsap.experimentdiagnostics.application.ReportGenerator
 import io.github.cdsap.experimentdiagnostics.application.ReportMetadata
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSource
+import io.github.cdsap.experimentdiagnostics.github.ArtifactSeriesLoader
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
 import io.github.cdsap.experimentdiagnostics.output.PackageWriter
 import java.io.File
 
 class ReportCommand(
     private val reportInputLoader: ReportInputLoader = DefaultReportInputLoader(),
+    private val artifactSeriesLoader: ArtifactSeriesLoader = ArtifactSeriesLoader(),
 ) : CliktCommand(name = "report") {
-    constructor(artifactSource: ArtifactSource) : this(DefaultReportInputLoader(artifactSource))
+    constructor(artifactSource: ArtifactSource) : this(DefaultReportInputLoader(artifactSource), ArtifactSeriesLoader())
 
     private val owner by option(help = "GitHub owner")
     private val repo by option(help = "GitHub repository")
@@ -37,9 +39,12 @@ class ReportCommand(
             error(warnings.joinToString("\n").ifEmpty { "No artifacts to process" })
         }
 
+        val (artifacts, artifactWarnings) = artifactSeriesLoader.load(bundles)
+        warnings += artifactWarnings
+
         val diagnosticsPackage =
             ReportGenerator().generate(
-                bundles = bundles,
+                artifacts = artifacts,
                 metadata =
                     ReportMetadata(
                         experimentRunId = runId?.toString(),

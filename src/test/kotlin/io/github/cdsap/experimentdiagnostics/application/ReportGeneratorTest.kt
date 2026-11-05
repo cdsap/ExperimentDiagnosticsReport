@@ -1,35 +1,24 @@
 package io.github.cdsap.experimentdiagnostics.application
 
 import io.github.cdsap.experimentdiagnostics.aggregate.VariantAggregator
-import io.github.cdsap.experimentdiagnostics.github.ArtifactBundle
-import io.github.cdsap.experimentdiagnostics.github.ArtifactSeriesLoader
-import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
+import io.github.cdsap.experimentdiagnostics.aggregate.ParsedArtifact
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
-import io.github.cdsap.experimentdiagnostics.parse.ArtifactDirectoryParser
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.io.File
 
 class ReportGeneratorTest {
     @Test
-    fun assemblesPackageFromBundlesMetadataAndWarnings() {
-        val bundle = ArtifactBundle(ArtifactKind.CPU, JoinKey("variant", "job", 0), File("artifact"))
-        val seriesLoader =
-            ArtifactSeriesLoader(
-                mapOf(
-                    ArtifactKind.CPU to
-                        ArtifactDirectoryParser { directory ->
-                            assertEquals(bundle.directory, directory)
-                            listOf(SampleSeries("cpu", "load", "system", "CPU", listOf(10.0, 30.0))) to
-                                listOf("artifact warning")
-                        },
-                ),
-            )
-
+    fun assemblesPackageFromParsedArtifactsMetadataAndWarnings() {
         val diagnosticsPackage =
-            ReportGenerator(seriesLoader, VariantAggregator()).generate(
-                bundles = listOf(bundle),
+            ReportGenerator(VariantAggregator()).generate(
+                artifacts =
+                    listOf(
+                        ParsedArtifact(
+                            JoinKey("variant", "job", 0),
+                            listOf(SampleSeries("cpu", "load", "system", "CPU", listOf(10.0, 30.0))),
+                        ),
+                    ),
                 metadata = ReportMetadata("123", "owner/repo"),
                 warnings = listOf("source warning", "artifact warning"),
             )
