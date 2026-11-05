@@ -1,8 +1,7 @@
 package io.github.cdsap.experimentdiagnostics.application
 
 import io.github.cdsap.experimentdiagnostics.aggregate.VariantAggregator
-import io.github.cdsap.experimentdiagnostics.github.ArtifactBundle
-import io.github.cdsap.experimentdiagnostics.github.ArtifactSeriesLoader
+import io.github.cdsap.experimentdiagnostics.aggregate.ParsedArtifact
 import io.github.cdsap.experimentdiagnostics.model.DiagnosticsPackage
 
 data class ReportMetadata(
@@ -11,20 +10,18 @@ data class ReportMetadata(
 )
 
 class ReportGenerator(
-    private val artifactSeriesLoader: ArtifactSeriesLoader = ArtifactSeriesLoader(),
     private val variantAggregator: VariantAggregator = VariantAggregator(),
 ) {
     fun generate(
-        bundles: List<ArtifactBundle>,
+        artifacts: List<ParsedArtifact>,
         metadata: ReportMetadata,
         warnings: List<String> = emptyList(),
     ): DiagnosticsPackage {
-        val (artifacts, artifactWarnings) = artifactSeriesLoader.load(bundles)
         return DiagnosticsPackage(
             experimentRunId = metadata.experimentRunId,
             sourceRepo = metadata.sourceRepo,
             variants = variantAggregator.aggregate(artifacts),
-            warnings = (warnings + artifactWarnings).distinct(),
+            warnings = warnings.distinct(),
         )
     }
 }
