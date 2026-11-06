@@ -7,28 +7,29 @@ data class ArtifactLoadResult(
     val warnings: List<String>,
 )
 
-/** Acquires report artifacts without exposing source-specific lifecycle details. */
-fun interface ArtifactSource {
-    fun load(options: ArtifactSourceOptions): ArtifactLoadResult
-}
-
-private interface ResolvedArtifactSource : AutoCloseable {
+/** Acquires the artifact bundles for one report without exposing source-specific details. */
+interface ArtifactBundleSource : AutoCloseable {
     fun load(): ArtifactLoadResult
 
     override fun close() = Unit
 }
 
-/** Adapts the local loader to the resolved artifact-source boundary. */
-private class LocalArtifactSource(
+/** Selects and creates the source for the command-line options. */
+fun interface ArtifactBundleSourceResolver {
+    fun resolve(options: ArtifactSourceOptions): ArtifactBundleSource
+}
+
+/** Adapts the offline artifact loader to the bundle-source boundary. */
+class LocalArtifactSource(
     private val loader: LocalArtifactLoader,
-) : ResolvedArtifactSource {
+) : ArtifactBundleSource {
     override fun load(): ArtifactLoadResult = loader.load()
 }
 
-/** Adapts the GitHub downloader to the resolved artifact-source boundary. */
-private class GithubArtifactSource(
+/** Adapts the GitHub downloader to the bundle-source boundary. */
+class GithubArtifactSource(
     private val downloader: GithubArtifactDownloader,
-) : ResolvedArtifactSource {
+) : ArtifactBundleSource {
     override fun load(): ArtifactLoadResult = downloader.load()
 
     override fun close() = downloader.close()
@@ -42,13 +43,10 @@ data class ArtifactSourceOptions(
     val token: String?,
 )
 
-class DefaultArtifactSource(
+class DefaultArtifactBundleSourceResolver(
     private val environment: Map<String, String> = System.getenv(),
-) : ArtifactSource {
-    override fun load(options: ArtifactSourceOptions): ArtifactLoadResult =
-        resolve(options).use { source -> source.load() }
-
-    private fun resolve(options: ArtifactSourceOptions): ResolvedArtifactSource {
+) : ArtifactBundleSourceResolver {
+    override fun resolve(options: ArtifactSourceOptions): ArtifactBundleSource {
         options.artifactsDir?.let { return LocalArtifactSource(LocalArtifactLoader(File(it))) }
 
         val owner = options.owner ?: error("--owner is required unless --artifacts-dir is set")
@@ -65,4 +63,17 @@ class DefaultArtifactSource(
             GithubArtifactDownloader(GithubRunRef(owner, repo, runId, token), workDir),
         )
     }
+}
+
+/** Compatibility boundary retained for callers of the previous options-based source. */
+fun interface ArtifactSource {
+    fun load(options: ArtifactSourceOptions): ArtifactLoadResult
+}
+
+/** Compatibility adapter retained for callers that used the previous options-based source. */
+class DefaultArtifactSource(
+    private val resolver: ArtifactBundleSourceResolver = DefaultArtifactBundleSourceResolver(),
+) : ArtifactSource {
+    override fun load(options: ArtifactSourceOptions): ArtifactLoadResult =
+        resolver.resolve(options).use { source -> source.load() }
 }

@@ -1,12 +1,15 @@
 package io.github.cdsap.experimentdiagnostics.cli
 
 import io.github.cdsap.experimentdiagnostics.github.ArtifactBundle
+import io.github.cdsap.experimentdiagnostics.github.ArtifactBundleSource
+import io.github.cdsap.experimentdiagnostics.github.ArtifactBundleSourceResolver
 import io.github.cdsap.experimentdiagnostics.github.ArtifactLoadResult
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.File
 
@@ -27,6 +30,26 @@ class ReportInputLoaderTest {
 
         assertEquals(ReportInput(listOf(bundle), listOf("source warning")), result)
         assertEquals(options, source.receivedOptions)
+    }
+
+    @Test
+    fun closesResolvedSourceAfterLoading() {
+        val source =
+            object : ArtifactBundleSource {
+                var closed = false
+
+                override fun load() = ArtifactLoadResult(emptyList(), listOf("source warning"))
+
+                override fun close() {
+                    closed = true
+                }
+            }
+        val resolver = ArtifactBundleSourceResolver { source }
+
+        val result = DefaultReportInputLoader(resolver).load(ArtifactSourceOptions(null, null, null, null, null))
+
+        assertEquals(listOf("source warning"), result.warnings)
+        assertTrue(source.closed)
     }
 
     private class FakeArtifactSource(
