@@ -1,16 +1,39 @@
 package io.github.cdsap.experimentdiagnostics.aggregate
 
+import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.PackageMeasurement
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
+import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
+import io.github.cdsap.experimentdiagnostics.parse.ProductionArtifactSeriesReader
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
+import java.io.File
+
+data class ArtifactBundle(
+    val kind: ArtifactKind,
+    val joinKey: JoinKey,
+    val directory: File,
+)
 
 data class ParsedArtifact(
     val joinKey: JoinKey,
     val series: List<SampleSeries>,
 )
 
-class VariantAggregator {
+class VariantAggregator(
+    private val reader: ArtifactSeriesReader = ProductionArtifactSeriesReader,
+) {
+    fun aggregate(bundles: Iterable<ArtifactBundle>): Pair<List<VariantDiagnostics>, List<String>> {
+        val warnings = mutableListOf<String>()
+        val artifacts =
+            bundles.map { bundle ->
+                val (series, localWarnings) = reader.read(bundle)
+                warnings += localWarnings
+                ParsedArtifact(bundle.joinKey, series)
+            }
+        return aggregate(artifacts) to warnings
+    }
+
     fun aggregate(artifacts: List<ParsedArtifact>): List<VariantDiagnostics> {
         val byVariant = artifacts.groupBy { it.joinKey.variant }
         val variants =

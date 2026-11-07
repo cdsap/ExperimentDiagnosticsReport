@@ -2,17 +2,11 @@ package io.github.cdsap.experimentdiagnostics.github
 
 import io.github.cdsap.experimentdiagnostics.aggregate.ParsedArtifact
 import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
-import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.parse.ArtifactDirectoryParser
 import io.github.cdsap.experimentdiagnostics.parse.CpuDiagnosticsParser
 import io.github.cdsap.experimentdiagnostics.parse.JfrAggregates
-import java.io.File
 
-data class ArtifactBundle(
-    val kind: ArtifactKind,
-    val joinKey: JoinKey,
-    val directory: File,
-)
+typealias ArtifactBundle = io.github.cdsap.experimentdiagnostics.aggregate.ArtifactBundle
 
 class ArtifactSeriesLoader(
     private val parsers: Map<ArtifactKind, ArtifactDirectoryParser> = defaultParsers,
