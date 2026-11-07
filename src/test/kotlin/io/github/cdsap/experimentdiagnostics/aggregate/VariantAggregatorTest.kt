@@ -1,15 +1,18 @@
 package io.github.cdsap.experimentdiagnostics.aggregate
 
+import io.github.cdsap.experimentdiagnostics.model.ArtifactKind
 import io.github.cdsap.experimentdiagnostics.model.JoinKey
 import io.github.cdsap.experimentdiagnostics.model.VariantDiagnostics
+import io.github.cdsap.experimentdiagnostics.parse.ArtifactSeriesReader
 import io.github.cdsap.experimentdiagnostics.parse.SampleSeries
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.io.File
 
 class VariantAggregatorTest {
     @Test
     fun defaultReaderHandlesEmptyBundles() {
-        val variants = VariantAggregator().aggregate(emptyList())
+        val variants = VariantAggregator().aggregate(emptyList<ParsedArtifact>())
 
         assertEquals(emptyList<VariantDiagnostics>(), variants)
     }
@@ -65,5 +68,24 @@ class VariantAggregatorTest {
 
         assertEquals(listOf("A_METRIC", "A_METRIC"), variants.single().measurements.map { it.metric })
         assertEquals(listOf(4.0, 2.0), variants.single().measurements.map { it.mean })
+    }
+
+    @Test
+    fun readerSuppliesSeriesAndWarningsBeforeAggregation() {
+        val bundle = ArtifactBundle(ArtifactKind.CPU, JoinKey("variant", "job", 1), File("artifact"))
+        val reader =
+            ArtifactSeriesReader { requested ->
+                assertEquals(bundle, requested)
+                listOf(SampleSeries("cpu", "load", "system", "CPU", listOf(10.0, 30.0))) to
+                    listOf("reader warning")
+            }
+
+        val (variants, warnings) = VariantAggregator(reader).aggregate(listOf(bundle))
+
+        assertEquals(listOf("reader warning"), warnings)
+        assertEquals(
+            20.0,
+            variants.single().measurements.single().mean,
+        )
     }
 }
