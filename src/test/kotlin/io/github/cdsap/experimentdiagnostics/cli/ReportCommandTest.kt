@@ -1,6 +1,8 @@
 package io.github.cdsap.experimentdiagnostics.cli
 
 import com.github.ajalt.clikt.core.main
+import io.github.cdsap.experimentdiagnostics.application.ReportInput
+import io.github.cdsap.experimentdiagnostics.application.ReportInputLoader
 import io.github.cdsap.experimentdiagnostics.github.ArtifactBundle
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSeriesLoader
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions

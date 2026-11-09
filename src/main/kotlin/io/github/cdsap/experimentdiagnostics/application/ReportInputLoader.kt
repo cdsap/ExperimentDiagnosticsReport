@@ -1,4 +1,4 @@
-package io.github.cdsap.experimentdiagnostics.cli
+package io.github.cdsap.experimentdiagnostics.application
 
 import io.github.cdsap.experimentdiagnostics.github.ArtifactBundle
 import io.github.cdsap.experimentdiagnostics.github.ArtifactBundleSource
@@ -28,10 +28,9 @@ class DefaultReportInputLoader(
             },
         )
 
-    override fun load(options: ArtifactSourceOptions): ReportInput {
-        return sourceResolver.resolve(options).use { source ->
+    override fun load(options: ArtifactSourceOptions): ReportInput =
+        sourceResolver.resolve(options).use { source ->
             val result = source.load()
             ReportInput(bundles = result.bundles, warnings = result.warnings)
         }
-    }
 }

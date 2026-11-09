@@ -1,4 +1,4 @@
-package io.github.cdsap.experimentdiagnostics.cli
+package io.github.cdsap.experimentdiagnostics.application
 
 import io.github.cdsap.experimentdiagnostics.github.ArtifactBundle
 import io.github.cdsap.experimentdiagnostics.github.ArtifactBundleSource
