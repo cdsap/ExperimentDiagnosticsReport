@@ -5,8 +5,10 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.long
+import io.github.cdsap.experimentdiagnostics.application.DefaultReportInputLoader
 import io.github.cdsap.experimentdiagnostics.application.ReportGenerator
 import io.github.cdsap.experimentdiagnostics.application.ReportMetadata
+import io.github.cdsap.experimentdiagnostics.application.ReportInputLoader
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSource
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSeriesLoader
 import io.github.cdsap.experimentdiagnostics.github.ArtifactSourceOptions
